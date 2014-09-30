@@ -8,11 +8,12 @@
 #include <stdio.h>
 #include <string.h>
 
-int main () {
+int main (int argc, char** argv) {
 FILE* pbashfile ;
 FILE* psuperbash ;
+char bashline[60] ;
 
-pbashfile = fopen("file", "r") ;
+pbashfile = fopen(argv[1], "r") ;
 if (pbashfile==NULL){
    printf ("Error reading file.\n\n") ;
    return 0 ;
@@ -23,9 +24,13 @@ if (psuperbash==NULL){
    return 0 ;
 }
 
-//okay the files are "open" now.
-//to read from the file use fscanf(pbashfile, *normalscanfstuff)
-//write is the same fprintf(psuperbash, *normalprintfstuff)
+//okay, this should theoretically just copy the entire file right now
+//we should be able to use sscanf to parse this string and make tests in the while loop...
+while (fgets(bashline, 60, pbashfile)) {
+   fprintf (psuperbash, "%s\n", bashline) ;
+}
 
+   fclose (pbashfile) ;
+   fclose (psuperbash) ;
    return 0 ;
 }
