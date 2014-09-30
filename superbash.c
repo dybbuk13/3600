@@ -25,9 +25,11 @@ if (psuperbash==NULL){
 }
 
 //okay, this should theoretically just copy the entire file right now
+//IT DOES, I TESTED :D
 //we should be able to use sscanf to parse this string and make tests in the while loop...
+//the loop case is the only challenge now :)
 while (fgets(bashline, 60, pbashfile)) {
-   fprintf (psuperbash, "%s\n", bashline) ;
+   fprintf (psuperbash, "%s", bashline) ;
 }
 
    fclose (pbashfile) ;
