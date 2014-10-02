@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 void fixequal (char bashline[]) ;
 void fixifthen (char bashline[]) ;
@@ -16,7 +17,7 @@ int main (int argc, char** argv) {
 FILE* pbashfile ;
 FILE* psuperbash ;
 char bashline[60] ;
-char* test1, test2 ;
+char *test1, *test2 ;
 
 pbashfile = fopen(argv[1], "r") ;
 if (pbashfile==NULL){
@@ -56,6 +57,11 @@ void fixequal (char bashline[]) {
 return ;
 }
 void fixifthen (char bashline[]) {
+   char *temp;
+   temp=(char*)malloc(strlen(bashline));
+   strncpy(temp,bashline,strlen(bashline)-5);
+   strcat(temp,"\n\ttemp\n");
+   strcpy(bashline,temp);
    
 return ;   
 }
