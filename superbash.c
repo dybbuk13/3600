@@ -38,7 +38,7 @@ while (fgets(bashline, 60, pbashfile)) {
    if (test1 != NULL) {
       fixequal(bashline) ;    
    } 
-   test1 = strstr(bashline, "if")
+   test1 = strstr(bashline, "if") ;
    test2 = strstr(bashline, "then") ;
    if (test1!=NULL && test2!=NULL){
       fixifthen(bashline) ;
