@@ -53,7 +53,20 @@ while (fgets(bashline, 60, pbashfile)) {
 }
 
 void fixequal (char bashline[]) {
-   
+  int i, j;
+  char* temp1;
+  
+  temp1 = (char *)malloc(strlen(bashline));
+  for(i=0, j=0; i < strlen(bashline); i++){
+     if(bashline[i] != ' '){
+        temp1[j] = bashline[i];
+        j++;
+     }
+  }
+  
+  strcpy(bashline, temp1);
+  free(temp1);
+  
 return ;
 }
 void fixifthen (char bashline[]) {
