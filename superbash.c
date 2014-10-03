@@ -52,6 +52,9 @@ while (fgets(bashline, 60, pbashfile)) {
    return 0 ;
 }
 
+//couldn't think of any easier way to do this than to just remove all spaces from the bashline.
+//but with a nested loop we can probably copy the lhs into temp, add an '=' with no space, then
+//copy the rhs after removing spaces from it.
 void fixequal (char bashline[]) {
   int i, j;
   char* temp1;
