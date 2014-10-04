@@ -17,32 +17,44 @@ int main (int argc, char** argv) {
 FILE* pbashfile ;
 FILE* psuperbash ;
 char bashline[60] ;
-char *test1, *test2 ;
+char filename[30] ;
 
 pbashfile = fopen(argv[1], "r") ;
 if (pbashfile==NULL){
    printf ("Error reading file.\n\n") ;
    return 0 ;
 }
-psuperbash = fopen("newfile", "w") ;
+psuperbash = fopen("bashfile", "w") ;
 if (psuperbash==NULL){
    printf ("Error creating file.\n\n") ;
    return 0 ;
 }
 
-//okay, this should theoretically just copy the entire file right now
-//IT DOES, I TESTED :D
-//we should be able to use sscanf to parse this string and make tests in the while loop...
-//the loop case is the only challenge now :)
+//reads file one line at a time and runs tests to see if things need to change
 while (fgets(bashline, 60, pbashfile)) {
-   test1 = strchr(bashline, '=') ;
-   if (test1 != NULL) {
+   if (strchr(bashline, '=') != NULL) {
       fixequal(bashline) ;    
    } 
-   test1 = strstr(bashline, "if") ;
-   test2 = strstr(bashline, "then") ;
-   if (test1!=NULL && test2!=NULL){
+   if (strstr(bashline, "if")!=NULL && strstr(bashline, "then")!=NULL){
       fixifthen(bashline) ;
+   }
+   if (strstr(bashline,"repeat")!=NULL && strstr(bashline, "times")!=NULL){
+      fixloop(bashline) ;
+      fprintf (psuperbash, "%s", bashline) ;
+      do {
+         fgets(bashline, 200, pbashfile) ;
+      } while (strchr(bashline, '{')==NULL) ;
+      while (strchr(bashline, '}')==NULL) {
+         fgets(bashline, 200, pbashfile) ;
+         if (strchr(bashline, '}')==NULL) {
+            fprintf (psuperbash, "%s", bashline) ;
+         }
+         //I don't get why I needed this...
+         
+      }
+      fprintf(psuperbash, "repeatIndex1=$[$repeatIndex1+1]\ndone\n") ; 
+      continue ;
+
    }
    fprintf (psuperbash, "%s", bashline) ;
 }
@@ -73,15 +85,27 @@ void fixequal (char bashline[]) {
 return ;
 }
 void fixifthen (char bashline[]) {
-   char *temp;
-   temp=(char*)malloc(strlen(bashline));
-   strncpy(temp,bashline,strlen(bashline)-5);
-   strcat(temp,"\n\ttemp\n");
+   char temp[200];
+   //temp=(char*)malloc(strlen(bashline));
+   strncpy(temp,bashline,strlen(bashline)-6);
+   strcat(temp,"\n     then\n");
    strcpy(bashline,temp);
-   
+   //free(temp);
+
+//I changed this because the strcat on the malloced array often caused faults :( -taylor
+//Also the space was causing issues so the 5 became 6
 return ;   
 }
 void fixloop (char bashline[]) {
-   
+   char temp[200] ;
+   char buff[20] ;
+   char var[20] ;
+  
+   sscanf(bashline, "%s %s", buff, var) ;
+   strcpy(temp, "repeatIndex1=0\n\nwhile [ $repeatIndex1 -lt ") ;
+   strcat(temp, var) ;
+   strcat(temp, " ]\ndo\n") ;
+   strcpy(bashline, temp) ;
+//this funciton only does the first half of the work, I was a little afraid to let the fuction do file i\o stuff
 return ;   
 }
