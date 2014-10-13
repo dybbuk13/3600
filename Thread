@@ -4,12 +4,17 @@
 //Taylor Terry
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
-void inc_n(int *n)
+void * inc_n(void *n)
 {
+
+   int *N = (int *) n;
+
    /* increment n to 100 */
-   while(++(*n) < 1000000000);
+   while(++(*N) < 1000000000);
+
 }
 
 int main()
@@ -18,16 +23,16 @@ int main()
     pthread_t tid[3];
     printf("x: %d, y: %d\n", x, y);
 
-   // for(i = 0; i < 3; i++){
-      pthread_create(&tid[0], NULL, inc_n, &x);
-   // }
-   // for(i = 0; i < 3; i++){
-  //    pthread_join(tid[i], (void **
+    pthread_create(&tid[0], NULL, inc_n, &x);
+    pthread_join(tid[0], NULL);
     printf("x increment finished\n");
 
-    inc_n(&y);
+    pthread_create(&tid[0], NULL, inc_n, &y);
+    pthread_join(tid[0], NULL);
     printf("y increment finished\n");
     printf("x: %d, y: %d\n", x, y);
 
     return 1;
 }
+//gcc increment.c -lpthread
+
