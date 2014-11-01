@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
             count--;
             soldT[count]=0;
             id_out=allT[count];
-            printf("Cancelled ticket:%d\n",id_out);
+            printf("Cancelling ticket:%d\n",id_out);
             write(newsockfd,&id_out,sizeof(id_out));//sends id of cancelled ticket
         }
 
