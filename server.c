@@ -109,7 +109,6 @@ int main(int argc, char *argv[])
 
     } while(strstr(buffer,"done")==NULL);//will loop until client sends "done" as buffer
 
-    
     close(newsockfd);
     close(sockfd);
     return 0; 
