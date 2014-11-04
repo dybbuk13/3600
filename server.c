@@ -16,6 +16,8 @@ void generate_tickets(int k[10], int l[10])//added
             k[i]= 10000 + rand()%90000; //this generates a random number from 10000-99999
             l[i]=0;                     
     }
+
+
 }
 void error(const char *msg)
 {
@@ -27,7 +29,7 @@ int main(int argc, char *argv[])
 {
     //allT is the database holding all ticket id numbers.
     //soldT has all zeros 
-    int soldT[10],allT[10],id_out,count=0; //added
+    int soldT[10],allT[10],id_out,count=0,i; //added
 
     int sockfd, newsockfd, portno;
     socklen_t clilen;
@@ -76,39 +78,62 @@ int main(int argc, char *argv[])
     if (newsockfd < 0) 
         error("ERROR on accept");
     
+    
    
-   do {   
+   do { 
+        write(newsockfd,buffer,255);
         bzero(buffer,256);
         n=read(newsockfd,buffer,255);//waits on client message
 
         if(strstr(buffer,"buy")!=NULL)
-        {                
-            if(soldT[count]==0)//checks if tickets are not sold out
-            {
-                id_out=allT[count];
-                soldT[count]=id_out;        //changes the zero to the id num
-                printf("Sold ticket#%d: %d\n",count,allT[count]); 
-                n= write(newsockfd,&id_out,sizeof(id_out));     //sends the id num to the client
-                count++;
+        {       
+            if(count<10)
+            {         
+                for(i=0; i<10; i++ )
+                {
+                    if(soldT[i]==0)
+                    {
+                        id_out=allT[i];
+                        soldT[i]=id_out;
+                        printf("Sold ticket id: %d\n",allT[i]); 
+                        write(newsockfd,&id_out,sizeof(id_out));
+                        count++;
+                        i=10;
+                    }
+                }
             }
            else
             {
                 id_out=0;
                 write(newsockfd,&id_out,sizeof(id_out));
-                printf("sold out!\n"); 
+                printf("sold out!\n");
+             
             }
         }
         else if (strstr(buffer,"cancel")!=NULL)
         {
-            count--;
-            soldT[count]=0;
-            id_out=allT[count];
-            printf("Cancelling ticket:%d\n",id_out);
-            write(newsockfd,&id_out,sizeof(id_out));//sends id of cancelled ticket
+            read(newsockfd,&id_out,sizeof(id_out));
+            for(i=0; i<10; i++)
+            {
+                int temp;
+                temp=soldT[i];
+                if(temp==id_out)
+                {
+                    count--;
+                    soldT[i]=0;
+                    id_out=allT[i];
+                    printf("Cancelled ticket:%d\n\n",id_out);
+                    i=10;
+                }
+
+            }
         }
+        else if (strstr(buffer,"new")!=NULL)
+            newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
     } while(strstr(buffer,"done")==NULL);//will loop until client sends "done" as buffer
 
+    
     close(newsockfd);
     close(sockfd);
     return 0; 
