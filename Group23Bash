@@ -1,0 +1,19 @@
+gcc -o server server.c
+gcc -o client client.c
+
+port=2000
+quit=0
+
+while [ "$quit" -ne 1 ]; do
+  netstat -a | grep $port >> /dev/null
+  if [ $? -gt 0 ]; then
+    quit=1
+  else
+    port=`expr $port + 1`
+  fi
+done
+
+./server $port &
+./client localhost $port
+
+#echo $port
