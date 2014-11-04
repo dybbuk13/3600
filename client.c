@@ -47,10 +47,12 @@ int main(int argc, char *argv[])
        
     srand(time(NULL));
 
-    for(i=0; i<20 ; i++)// this indicates the number of requests
+    for(i=0; i<7 ; i++)
     {
+        read(sockfd,buffer,255);
         bzero(buffer,256);
-        cc=rand()%10;   
+        cc=rand()%10; 
+          
         if(cc>0)// 90% 
         {
             strcpy(buffer,"buy");
@@ -61,12 +63,12 @@ int main(int argc, char *argv[])
         }
         else//10%
         {
+            id=10000 + rand()%90000;
             strcpy(buffer,"cancel");
-            n = write(sockfd,buffer,strlen(buffer));
-            read(sockfd,&id,sizeof(id));
-            printf("Cancel succesful\n\n");
-        }
-    }
+            write(sockfd,buffer,strlen(buffer));
+            write(sockfd,&id,sizeof(id)); 
+        }    
+    }   
     bzero(buffer,256);
     strcpy(buffer,"done");
     n=write(sockfd,buffer,strlen(buffer));
