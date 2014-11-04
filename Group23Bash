@@ -1,19 +1,21 @@
 gcc -o server server.c
 gcc -o client client.c
+gcc -o client2 client2.c
 
 port=2000
 quit=0
 
 while [ "$quit" -ne 1 ]; do
-  netstat -a | grep $port >> /dev/null
+  lsof -i -n -P | grep $port >> /dev/null
   if [ $? -gt 0 ]; then
     quit=1
   else
     port=`expr $port + 1`
-  fi
+ fi
 done
 
 ./server $port &
+./client2 localhost $port
 ./client localhost $port
 
 #echo $port
