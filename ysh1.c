@@ -51,6 +51,7 @@ int main(int argc, char *argv[], char *envp[])
             else 
             {
               fill_argv(tmp);//fiu
+              printf("argc:%d\n",my_argc);
               strncpy(cmd, my_argv[0], strlen(my_argv[0]));
               strncat(cmd, "\0", 1);
               if(index(cmd, '/') == NULL) //index()=strchr()
@@ -71,6 +72,7 @@ int main(int argc, char *argv[], char *envp[])
                 if((fd = open(cmd, O_RDONLY)) > 0) 
                 {
                   close(fd);
+                  //handlecommand(cmd);
                   call_execve(cmd);//fiu
                 } 
                 else 
@@ -79,7 +81,7 @@ int main(int argc, char *argv[], char *envp[])
                 }
               }
               free_argv();//fiu
-              printf("[MY_SHELL ] ");
+              printf("[!MY_SHELL ] ");
               bzero(cmd, 100);
             }
           bzero(tmp, 100);
@@ -105,12 +107,23 @@ void handlecommand(char *cmd)
 }
 int checkcommand()
 {
+  if (strcmp("exit",my_argv[0])==0){
+    exit(EXIT_SUCCESS);
+  }
   if (strcmp("cd",my_argv[0])==0){
     changedir();
-    return -1;
-  //if ()
-
+    return 1;
   }
+  if (my_argc==3)
+  {
+    if (strcmp("|",my_argv[1])==0)
+    {
+      pipeline(2);
+
+      return 1;
+    }
+  }
+
   return 0;
 }
 void changedir()
@@ -124,3 +137,38 @@ void changedir()
       printf(" %s no such directory\n",my_argv[1]);
   }
 }
+void pipeline(int f)
+{
+  
+  char    line[4096];
+  FILE    *fpin, *fpout;
+  char arg1[50],arg2[50];
+  int i;
+  if(f==2)
+  {
+    strcpy(arg1,my_argv[0]);
+    strcpy(arg2,my_argv[2]);
+
+  }
+  puts(my_argv[0]);
+  puts(arg1);
+  puts(arg2);
+
+  if ((fpin=popen(arg1,"r"))==NULL)
+    printf("cant open %s",arg1);
+
+  if ((fpout=popen(arg2,"w"))==NULL)
+    printf("popen error");
+
+  while(fgets(line,4096,fpin)!=NULL){
+    if(fputs(line,fpout)==EOF)
+      printf("fputs error to pipe\n");
+  }
+  if(ferror(fpin))
+    printf("fgets error");
+  if(pclose(fpout)== -1)
+    printf("pclose error\n");
+  
+}
+///declare static int my_argc=0;
+///add for(my_argc=0;my_argv[my_argc]!='\0';)my_argc++; at the end of fill_arg
