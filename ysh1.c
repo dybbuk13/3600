@@ -21,10 +21,10 @@ int main(int argc, char *argv[], char *envp[])
       printf("%s\n",thisenv);
     }
 
-    copy_envp(envp);//func in utility
+    copy_envp(envp);
 
-    get_path_string(my_envp, path_str);//fiu   
-    insert_path_str_to_search(path_str);//fiu
+    get_path_string(my_envp, path_str); 
+    insert_path_str_to_search(path_str);
 
     if(fork() == 0) 
     {
@@ -50,7 +50,7 @@ int main(int argc, char *argv[], char *envp[])
             } 
             else 
             {
-              fill_argv(tmp);//fiu
+              fill_argv(tmp);
               printf("argc:%d\n",my_argc);
               strncpy(cmd, my_argv[0], strlen(my_argv[0]));
               strncat(cmd, "\0", 1);
@@ -59,7 +59,7 @@ int main(int argc, char *argv[], char *envp[])
                 if(attach_path(cmd) == 0) 
                 {
                   handlecommand(cmd);
-                  //call_execve(cmd);//fiu
+                  //call_execve(cmd);
                   
                 } 
                 else 
@@ -72,16 +72,16 @@ int main(int argc, char *argv[], char *envp[])
                 if((fd = open(cmd, O_RDONLY)) > 0) 
                 {
                   close(fd);
-                  //handlecommand(cmd);
-                  call_execve(cmd);//fiu
+                  handlecommand(cmd);
+                  //call_execve(cmd);
                 } 
                 else 
                 {
                   printf("%s: command not found\n", cmd);
                 }
               }
-              free_argv();//fiu
-              printf("[!MY_SHELL ] ");
+              free_argv();
+              printf("[MY_SHELL ] ");
               bzero(cmd, 100);
             }
           bzero(tmp, 100);
@@ -99,76 +99,3 @@ int main(int argc, char *argv[], char *envp[])
     printf("\n");
     return 0;
 }
-void handlecommand(char *cmd)
-{
-  if (checkcommand()==0){
-    call_execve(cmd);
-  }
-}
-int checkcommand()
-{
-  if (strcmp("exit",my_argv[0])==0){
-    exit(EXIT_SUCCESS);
-  }
-  if (strcmp("cd",my_argv[0])==0){
-    changedir();
-    return 1;
-  }
-  if (my_argc==3)
-  {
-    if (strcmp("|",my_argv[1])==0)
-    {
-      pipeline(2);
-
-      return 1;
-    }
-  }
-
-  return 0;
-}
-void changedir()
-{
-  if(my_argv[1]==NULL)
-  {
-    chdir(getenv("HOME"));
-  }
-  else{
-    if(chdir(my_argv[1])==-1)
-      printf(" %s no such directory\n",my_argv[1]);
-  }
-}
-void pipeline(int f)
-{
-  
-  char    line[4096];
-  FILE    *fpin, *fpout;
-  char arg1[50],arg2[50];
-  int i;
-  if(f==2)
-  {
-    strcpy(arg1,my_argv[0]);
-    strcpy(arg2,my_argv[2]);
-
-  }
-  puts(my_argv[0]);
-  puts(arg1);
-  puts(arg2);
-
-  if ((fpin=popen(arg1,"r"))==NULL)
-    printf("cant open %s",arg1);
-
-  if ((fpout=popen(arg2,"w"))==NULL)
-    printf("popen error");
-
-  while(fgets(line,4096,fpin)!=NULL){
-    if(fputs(line,fpout)==EOF)
-      printf("fputs error to pipe\n");
-  }
-  if(ferror(fpin))
-    printf("fgets error");
-  if(pclose(fpout)== -1)
-    printf("pclose error\n");
-  
-}
-///declare static int my_argc=0;
-///add for(my_argc=0;my_argv[my_argc]!='\0';)my_argc++; at the end of fill_arg
