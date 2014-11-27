@@ -20,13 +20,14 @@ static char *search_path[10];
 static char *my_argv[100];
 static char *search_path[10];
 static int my_argc=0;
-static int n=0;
+static int pipecount=0;
+int i;
 
 
 int checkcommand();
 void changedir();
 void handlecommand(char *cmd);
-int pipeline(int f,int n,int last);
+void pipeline(int f,int n,int last);
 
 int attach_path(char *cmd)
 {
@@ -187,6 +188,11 @@ void insert_path_str_to_search(char *path_str)
         tmp++;
     }
 }
+int returnposition(int a){
+    for (;my_argv[a]!='\0';a++)
+        if(strcmp("|",my_argv[a])==0)
+            return a;
+}
 void handlecommand(char *cmd)
 {
     if (checkcommand()==0){
@@ -212,9 +218,16 @@ int checkcommand()
         }
     }   
     if (my_argc>3){
-
-        pipeline(my_argc-1,0,0);
-        return 1;
+        for (i=0;my_argv[i]!='\0';i++)
+        {
+            if(strcmp("|",my_argv[i])==0)
+                pipecount++;
+        }
+        if (pipecount>=1)
+        {
+            pipeline(my_argc-1,pipecount,0);
+            return 1;
+        }
     }
   
 
@@ -232,7 +245,7 @@ void changedir()
          printf(" %s no such directory\n",my_argv[1]);
     }
 }
-int pipeline(int f,int n,int last)
+void pipeline(int f,int n,int last)
 {
 char    line[4096];
   FILE    *fpin, *fpout;
@@ -247,16 +260,29 @@ char    line[4096];
     strcpy(arg2,my_argv[2]);
 
   }
-  else{
-    for(i=0;i<f-1;i++){
-        strcat(arg1,my_argv[i]);
-        strcat(arg1," ");
+  else if (n==1)
+  {
+    int a=0;
+    a=returnposition(a);
+    for(i=0;i<a;i++)
+    {
+        if(strcmp("|",my_argv[i])!=0)
+        {
+            strcat(arg1,my_argv[i]);
+            strcat(arg1," ");
+        }
     }
-    strcpy(arg2,my_argv[my_argc-1]);
+    for (i+=1;my_argv[i]!='\0';i++)
+    {
+       // printf("%s\n",my_argv[i] );
+        strcat(arg2,my_argv[i]);
+        strcat(arg2," ");
+    }
   }
-  puts(my_argv[0]);
-  puts(arg1);
-  puts(arg2);
+
+ // puts(my_argv[0]);
+ // puts(arg1);
+ // puts(arg2);
 
   if ((fpin=popen(arg1,"r"))==NULL)
     printf("cant open %s",arg1);
@@ -273,4 +299,5 @@ char    line[4096];
   if(pclose(fpout)== -1)
     printf("pclose error\n");
   wait(NULL);
+  pipecount=0;
 }
