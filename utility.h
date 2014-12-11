@@ -193,7 +193,6 @@ void insert_path_str_to_search(char *path_str)
     }
 }
 int returnposition(int a){
-{
     while(strcmp("|",my_argv[a])!=0 && strcmp("\0",my_argv[a])!=0){
         a++;
     }
