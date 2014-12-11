@@ -25,6 +25,8 @@ int i;
 static char *args[512];
 pid_t pid;
 
+static int processtable[100];
+
 int checkcommand();
 void changedir();
 void handlecommand(char *cmd);
@@ -32,6 +34,8 @@ int pipeline(int f,int n,int last);
 void getpipeargs();
 void user_cmd();
 int echo_env();
+int bg() ;
+void jobs() ;
 
 int attach_path(char *cmd)
 {
@@ -399,4 +403,24 @@ void user_cmd()
       }
     }
     printf("\n");
+}
+int bg () { 
+   if (my_argc==0){
+      printf ("error. no command.\n") ;
+      return 1;
+   } 
+   pid = fork () ;
+   if (pid==0){   
+      bzero (my_argv[my_argc-1], strlen(my_argv[my_argc-1])+1);
+      my_argc=my_argc-1;
+      return 0;
+   }
+   else {
+      return 1;
+   }
+}
+
+void jobs() {
+   printf ("You wanted to look at the current jobs?") ;
+   return ;
 }
