@@ -22,12 +22,16 @@ static char *search_path[10];
 static int my_argc=0;
 static int pipecount=0;
 int i;
-
+static char *args[512];
+pid_t pid;
 
 int checkcommand();
 void changedir();
 void handlecommand(char *cmd);
-void pipeline(int f,int n,int last);
+int pipeline(int f,int n,int last);
+void getpipeargs();
+void user_cmd();
+int echo_env();
 
 int attach_path(char *cmd)
 {
@@ -189,10 +193,13 @@ void insert_path_str_to_search(char *path_str)
     }
 }
 int returnposition(int a){
-    for (;my_argv[a]!='\0';a++)
-        if(strcmp("|",my_argv[a])==0)
-            return a;
+{
+    while(strcmp("|",my_argv[a])!=0 && strcmp("\0",my_argv[a])!=0){
+        a++;
+    }
+    return a;
 }
+
 void handlecommand(char *cmd)
 {
     if (checkcommand()==0){
@@ -208,31 +215,34 @@ int checkcommand()
         changedir();
         return 1;
     }
-    if (my_argc==3)
-    {
-        if (strcmp("|",my_argv[1])==0)
-        {
-            pipeline(2,0,0);
-
-            return 1;
-        }
-    }   
-    if (my_argc>3){
-        for (i=0;my_argv[i]!='\0';i++)
-        {
-            if(strcmp("|",my_argv[i])==0)
-                pipecount++;
-        }
-        if (pipecount>=1)
-        {
-            pipeline(my_argc-1,pipecount,0);
-            return 1;
-        }
+    if (strcmp("echo",my_argv[0])==0 && strstr(my_argv[1],"$")!=NULL){
+        return echo_env();
     }
-  
+    if (strcmp("user",my_argv[0])==0){
+        user_cmd();
+        return 1;
+    }
+    if (my_argc>=3){
+        for(i=0;my_argv[i]!='\0';i++)
+            if(strcmp("|",my_argv[i])==0){
+                getpipeargs();
 
+                for (i=0;my_argv[i]!='\0';i++){
+                if(strcmp("|",my_argv[i])==0)
+                    pipecount++;
+                }
+                
+                for(i=0;i<pipecount+1;i++)
+                {
+                    wait(NULL);
+                }
+                pipecount=0;
+                return 1;
+            }
+    }
   return 0;
 }
+
 void changedir()
 {
     if(my_argv[1]==NULL)
@@ -245,59 +255,149 @@ void changedir()
          printf(" %s no such directory\n",my_argv[1]);
     }
 }
-void pipeline(int f,int n,int last)
-{
-char    line[4096];
-  FILE    *fpin, *fpout;
-  char arg1[50],arg2[50],arg3[50];
-  memset(arg1,'\0',sizeof arg3);
-  memset(arg2,'\0',sizeof arg3);
-  memset(arg3,'\0',sizeof arg3);
-  int i;
-  if(f==2)
-  {
-    strcpy(arg1,my_argv[0]);
-    strcpy(arg2,my_argv[2]);
-
-  }
-  else if (n==1)
-  {
-    int a=0;
-    a=returnposition(a);
-    for(i=0;i<a;i++)
+void getpipeargs(){
+    
+    int input=0,j=0,a=0;
+    for (i=0;my_argv[i]!='\0';i++){
+            if(strcmp("|",my_argv[i])==0)
+                pipecount++;
+    }
+    if(pipecount>=2)
     {
-        if(strcmp("|",my_argv[i])!=0)
+        a=returnposition(a);
+        for(i=0;i<a;i++)
         {
-            strcat(arg1,my_argv[i]);
-            strcat(arg1," ");
+            if(strcmp("|",my_argv[i])!=0)
+            {
+                args[i]=my_argv[i];
+            }    
+        }
+        input=pipeline(input,1,0);
+        a++;
+        a=returnposition(a);
+        for (i+=1;i<a;i++)
+        {
+            if(strcmp("|",my_argv[i])!=0)
+            {
+                args[j]=my_argv[i];
+                j++;
+            }
+        }
+        args[j]=NULL;
+        input=pipeline(input,0,0);
+        j=0;
+        for (i+=1;my_argv[i]!='\0';i++)
+        {
+            args[j]=my_argv[i];
+            j++;
+        }
+        args[j]=NULL;
+        input=pipeline(input,0,1);
+    }
+    else
+    {
+        if(pipecount==0)
+        {
+            for(i=0;my_argv[i]!='\0';i++){
+                
+                    printf("copied: %s\n",my_argv[i] );
+                    args[i]=my_argv[i];   
+            }
+            input=pipeline(input,1,1);
+        }
+        else
+        {
+            a=returnposition(a);
+            for(i=0;i<a;i++)
+            {
+                if(strcmp("|",my_argv[i])!=0)
+                {
+                    args[i]=my_argv[i];
+                }
+            }
+            input=pipeline(input,1,0);  
+            for (i+=1;my_argv[i]!='\0';i++)
+            {
+           
+                args[j]=my_argv[i];
+                j++;
+            }
+            args[j]=NULL;
+            input=pipeline(input,0,1);
         }
     }
-    for (i+=1;my_argv[i]!='\0';i++)
-    {
-       // printf("%s\n",my_argv[i] );
-        strcat(arg2,my_argv[i]);
-        strcat(arg2," ");
-    }
-  }
-
- // puts(my_argv[0]);
- // puts(arg1);
- // puts(arg2);
-
-  if ((fpin=popen(arg1,"r"))==NULL)
-    printf("cant open %s",arg1);
+    pipecount=0;
+}
+int pipeline(int f,int n,int last)
+{
+    int pipes[2];
+    pipe (pipes);
+    pid = fork();
     
-  if ((fpout=popen(arg2,"w"))==NULL)
-    printf("popen error");
+    if(pid==0){
+        if (n==1 && last ==0 && f==0 ){
+            dup2(pipes[1],STDOUT_FILENO);
+        }
+        else if (n==0 && last ==0 && f!=0){
+            dup2(f,STDIN_FILENO);
+            dup2(pipes[1],STDOUT_FILENO);
+        }
+        else{
+            dup2(f,STDIN_FILENO);
+        }
+        if (execvp(args[0],args)==-1)
+            exit(EXIT_FAILURE);
+    }
 
-  while(fgets(line,4096,fpin)!=NULL){
-    if(fputs(line,fpout)==EOF)
-      printf("fputs error to pipe\n");
-  }
-  if(ferror(fpin))
-    printf("fgets error");
-  if(pclose(fpout)== -1)
-    printf("pclose error\n");
-  wait(NULL);
-  pipecount=0;
+    if (f !=0)
+        close(f);
+    close(pipes[1]);
+    if (last==1)
+        close(pipes[0]);
+    return pipes[0]; 
+}
+
+int echo_env()
+{       
+    char** env;
+    char *c=my_argv[1];
+    char *a= (char *)malloc(sizeof(char)* strlen(c));
+
+    for(i=0;c[i+1]!=0;i++)
+        a[i]=c[i+1];
+    strcat(a,"=");
+    i=0;
+    for(env=my_envp;*env!=0;env++)
+    {
+        char *thisenv=*env;
+        if(strstr(thisenv,a)!=NULL){
+        i=strcspn(thisenv,"=");
+        i++;
+        for(;thisenv[i]!=0;i++)
+            printf("%c",thisenv[i] );
+        }
+    }
+    if(i==0){
+        return 0;
+    }
+    else{
+    printf("\n");
+    return 1;
+    }   
+}
+
+void user_cmd()
+{
+    char** env;
+    for(env=my_envp;*env!=0;env++)
+    {
+      char* thisenv=*env;
+      if(strstr(thisenv,"USER=")!=NULL){
+        i=strcspn(thisenv,"=");
+        i++;
+        for(;thisenv[i]!=0;i++)
+            printf("%c",thisenv[i] );
+      }
+    }
+    printf("\n");
 }
