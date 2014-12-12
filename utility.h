@@ -433,13 +433,13 @@ void stdRedirect()
   while(Exit < 1)
   {
     if(strcmp("\0", my_argv[i]) == 0)
-      exit++;
+      Exit++;
 
     if(strcmp("<", my_argv[i]) == 0)
     {
       in = open(my_argv[i+1]), O_RDONLY);
 
-      if(strcmp(">", my_argv[i+2] == 0)
+      if(strcmp(">", my_argv[i+2]) == 0)
       {
         out = open(my_argv[i+3], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 
