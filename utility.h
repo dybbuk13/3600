@@ -411,9 +411,11 @@ int bg () {
    } 
    pid = fork () ;
    if (pid==0){   
+      setpgid(0, 0) ;
       bzero (my_argv[my_argc-1], strlen(my_argv[my_argc-1])+1);
+      free(my_argv[my_argc-1]);
+      free(my_argv[my_argc]);
       my_argc=my_argc-1;
-      return 0;
    }
    else {
       return 1;
@@ -421,6 +423,5 @@ int bg () {
 }
 
 void jobs() {
-   printf ("You wanted to look at the current jobs?") ;
    return ;
 }
