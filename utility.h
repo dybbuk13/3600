@@ -36,6 +36,11 @@ void user_cmd();
 int echo_env();
 int bg() ;
 void jobs() ;
+void stdRedirect();
+void bash();
+void fixequal (char bashline[]) ;
+void fixifthen (char bashline[]) ;
+void fixloop (char bashline[]) ;
 
 int attach_path(char *cmd)
 {
@@ -60,7 +65,7 @@ int attach_path(char *cmd)
 void call_execve(char *cmd)
 {
     int i;
-    printf("cmd is %s\n", cmd);
+    //printf("cmd is %s\n", cmd);
     if(fork() == 0) 
     {
         i = execve(cmd, my_argv, my_envp);
@@ -84,7 +89,7 @@ void copy_envp(char **envp)
     for(;envp[index] != NULL; index++) 
     {
         my_envp[index] = (char *)
-		malloc(sizeof(char) * (strlen(envp[index]) + 1));
+        malloc(sizeof(char) * (strlen(envp[index]) + 1));
         memcpy(my_envp[index], envp[index], strlen(envp[index]));
     }
 }
@@ -225,23 +230,34 @@ int checkcommand()
         user_cmd();
         return 1;
     }
+    
+    if(strcmp("bash",my_argv[0])==0){
+        bash();
+        wait(NULL);
+        return 1;
+    }
     if (my_argc>=3){
-        for(i=0;my_argv[i]!='\0';i++)
-            if(strcmp("|",my_argv[i])==0){
-                getpipeargs();
-
-                for (i=0;my_argv[i]!='\0';i++){
-                if(strcmp("|",my_argv[i])==0)
-                    pipecount++;
+        if (strcmp(">",my_argv[1])==0){
+            stdRedirect();
+            return 1;
+        }
+        else{
+            for(i=0;my_argv[i]!='\0';i++)
+                if(strcmp("|",my_argv[i])==0){ 
+                    getpipeargs();
+                    for (i=0;my_argv[i]!='\0';i++){
+                    if(strcmp("|",my_argv[i])==0)
+                        pipecount++;
+                    }
+                    
+                    for(i=0;i<pipecount+1;i++)
+                    {
+                        wait(NULL);
+                    }
+                    pipecount=0;
+                    return 1;
                 }
-                
-                for(i=0;i<pipecount+1;i++)
-                {
-                    wait(NULL);
-                }
-                pipecount=0;
-                return 1;
-            }
+        }
     }
   return 0;
 }
@@ -429,20 +445,20 @@ void jobs() {
 void stdRedirect()
 {
   int in = 0, out = 0, Exit = 0, i = 0;
-
+  args[0]=my_argv[0];
   while(Exit < 1)
   {
+    
     if(strcmp("\0", my_argv[i]) == 0)
       Exit++;
 
     if(strcmp("<", my_argv[i]) == 0)
     {
-      in = open(my_argv[i+1]), O_RDONLY);
+      in = open(my_argv[i+1], O_RDONLY);
 
       if(strcmp(">", my_argv[i+2]) == 0)
       {
-        out = open(my_argv[i+3], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
-
+        out = open(my_argv[i+3], O_WRONLY | O_TRUNC | O_CREAT,S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
         dup2(in, 0);
         dup2(out, 1);
 
@@ -466,16 +482,129 @@ void stdRedirect()
     }
     if(strcmp(">", my_argv[i]) == 0)
     {
-      out = open(my_argv[i+1], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
-
+      
+      out = open(my_argv[i+1], O_WRONLY | O_TRUNC | O_CREAT,S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
       dup2(out, 1);
-
       close(out);
-
       execvp(args[0], args);
       Exit++;
     }
-    args[i] = myargv[i];
     i++;
   }
+  
+}
+void bash()
+{
+    int in=0,out=0;
+    int i, j;
+    char bashline[60] ;
+    char c[60];
+    if(my_argc==3){
+
+    if(strcmp("<", my_argv[1]) == 0)
+    {
+      in = open(my_argv[2], O_RDONLY);
+      dup2(in, 0);
+
+      close(in);
+
+    }
+    }
+    else{
+      in = open(my_argv[2], O_RDONLY);
+      if(strcmp(">", my_argv[3]) == 0)
+      {
+        out = open(my_argv[4], O_WRONLY | O_TRUNC | O_CREAT,S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+
+        dup2(in, 0);
+        dup2(out, 1);
+
+        close(in);
+        close(out);
+      }
+    }   
+    while(scanf("%s",bashline)==1){
+
+       if(scanf("%[^\n]%*c", c) == 1){
+        strcat(bashline,c);
+       }
+
+       if (strchr(bashline, '=') != NULL) {
+          fixequal(bashline) ;
+          printf ("%s", bashline);
+       }
+       else if (strstr(bashline, "if")!= NULL && strstr(bashline, "then")!=NULL){
+          fixifthen(bashline) ;
+          printf ("%s", bashline);
+       }
+       else if (strstr(bashline,"repeat")!=NULL && strstr(bashline, "times")!=NULL){
+          fixloop(bashline) ;
+          printf ("%s", bashline) ;
+          do {
+             scanf("%s",bashline);
+            //fgets(bashline, 200, pbashfile) ;
+          } while (strchr(bashline, '{')==NULL) ;
+          while (strchr(bashline, '}')==NULL) {
+             scanf("%s",bashline);
+
+             if(scanf("%[^\n]%*c", c) == 1){
+             strcat(bashline,c);
+             }
+             if (strchr(bashline, '}')==NULL) {
+                printf ("%s", bashline) ;
+             }
+             //I don't get why I needed this...
+          }
+          printf("\nrepeatIndex1=$[$repeatIndex1+1]\ndone\n");
+          continue ;
+       }
+        else if (strstr(bashline,"else")!=NULL)
+          printf ("   %s\n      ", bashline);
+        else
+          printf ("%s\n", bashline);
+    }
+       //return 1 ;
+}
+void fixequal (char bashline[]) {
+      int i, j;
+      char* temp1;
+
+      temp1 = (char *)malloc(strlen(bashline));
+      for(i=0, j=0; i < strlen(bashline); i++){
+         if(bashline[i] != ' '){
+            temp1[j] = bashline[i];
+            j++;
+         }
+      }
+
+      strcpy(bashline, temp1);
+      strcat(bashline,"\n\n");
+      free(temp1);
+
+    return ;
+}
+void fixifthen (char bashline[]) {
+   char temp[200];
+   //temp=(char*)malloc(strlen(bashline));
+   strncpy(temp,bashline,strlen(bashline)-5);
+   strcat(temp,"\n   then\n      ");
+   strcpy(bashline,temp);
+   //free(temp);
+
+//I changed this because the strcat on the malloced array often caused faults :( -taylor
+//Also the space was causing issues so the 5 became 6
+return ;
+}
+void fixloop (char bashline[]) {
+       char temp[200] ;
+       char buff[20] ;
+       char var[20] ;
+
+       sscanf(bashline, "%s %s", buff, var) ;
+       strcpy(temp, "\nrepeatIndex1=0\n\nwhile [ $repeatIndex1 -lt ") ;
+       strcat(temp, var) ;
+       strcat(temp, " ]\ndo\n\n   ") ;
+       strcpy(bashline, temp) ;
+    //this funciton only does the first half of the work, I was a little afraid to let the fuction do file i\o stuff
+    return ;
 }
