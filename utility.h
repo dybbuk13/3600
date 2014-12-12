@@ -475,6 +475,7 @@ void stdRedirect()
       execvp(args[0], args);
       Exit++;
     }
+    args[i] = myargv[i];
     i++;
   }
 }
